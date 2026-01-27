@@ -18,4 +18,40 @@ We inspected the view source page:-
 
 ohh ....prolly the Name of the user be john 
 
+try finding out any subdirectories this server has using gobuster:-
+
+![Project Screenshot](3.png.png)
+
+AFter trying to find subdirectories we got /secret
+
+![Project Screenshot](2.png.png)
+
+After checking over the file secret key , it gives a rsa key to the ssh 
+We can copy the key and save it in some file 
+
+sec.key 
+
+which has to be converted into hash
+using  ssh2john seckey > sec.hash 
+
+and then 
+try decrypting the sec.hash to find paraphrase
+
+john sec.hash   --wordlist=/usr/share/wordlists/rockyou.txt
+
+ones, done we need to give the file permission chmod 600
+
+
+ 
+try login in into the ssh
+
+
+![Project Screenshot](4.png.png)
+
+yesss.. we entered the ssh
+
+check for any user flag
+
+![Project Screenshot](5.png.png)
+
 
