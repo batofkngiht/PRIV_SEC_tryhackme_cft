@@ -1,2 +1,2 @@
-# ctf_writeup
+# TRYHACKME_writeups
 cfts
