@@ -44,11 +44,11 @@ Results:
 
 ## 2. FTP Enumeration
 
-![ftp anonymous attempt failed](screenshots/2.png)
+![ftp anonymous attempt failed](2.png)
 
 First attempt: I tried logging in with a blank/default username and it failed — the banner ("NamelessOne's FTP Server!") confirmed the service was reachable, but a plain login without specifying `anonymous` didn't work.
 
-![ftp anonymous login success](screenshots/3.png)
+![ftp anonymous login success](3.png)
 
 Logging in explicitly with the username `anonymous` (blank/any password) succeeded:
 
@@ -61,13 +61,13 @@ Password:
 
 Listing the root FTP directory showed a `scripts` folder.
 
-![removed_files.log tail](screenshots/4.png)
+![removed_files.log tail](4.png)
 
 Inside `scripts`, I checked `removed_files.log` — at this point in the enumeration it just showed a cron-style cleanup script running repeatedly and reporting **"nothing to delete"** each cycle. This told me two important things:
 1. There's a script running on a **schedule** (cron) that's touching files in `/tmp`.
 2. It's writing its own log file — meaning it likely runs with enough privilege to read/write in `/var/ftp/scripts/`.
 
-![scripts directory + to_do.txt](screenshots/5.png)
+![scripts directory + to_do.txt](5.png)
 
 Full directory listing of `scripts/`:
 - `clean.sh` — the cleanup script itself, **world-writable-looking permissions** (`-rwxr-xrwx`)
@@ -85,7 +85,7 @@ This is the key hint — the admin *knew* anonymous FTP was dangerous but hadn't
 
 ## 3. Grabbing a Local Copy of `clean.sh`
 
-![wget download of clean.sh](screenshots/6.png)
+![wget download of clean.sh](6.png)
 
 ```
 wget --ftp-user=anonymous --ftp-password=PASSWORD ftp://10.48.143.85/scripts/clean.sh
@@ -97,7 +97,7 @@ I pulled the script down locally with `wget` (rather than `get` inside the inter
 
 ## 4. SMB Enumeration (Parallel Check)
 
-![smbclient share listing](screenshots/8.png)
+![smbclient share listing](8.png)
 
 ```
 smbclient -L //10.48.143.85/ -N
@@ -105,7 +105,7 @@ smbclient -L //10.48.143.85/ -N
 
 Found three shares: `print$` (printer drivers), `pics` (a custom "Pics" share), and `IPC$`. The `-N` flag (no password) worked, confirming **null session / anonymous SMB access** as well.
 
-![smbclient browsing pics share](screenshots/7.png)
+![smbclient browsing pics share](7.png)
 
 ```
 smbclient //10.48.143.85/pics -N
@@ -117,7 +117,7 @@ Inside `pics`, only two harmless image files (`corgo2.jpg`, `puppos.jpeg`) — a
 
 ## 5. Weaponizing `clean.sh`
 
-![clean.sh content on server](screenshots/9.png)
+![clean.sh content on server](9.png)
 
 Viewing the script (`less clean.sh`) on the FTP server showed the logic:
 
@@ -149,7 +149,7 @@ This is a classic **cron job hijack via writable script** — I didn't need any 
 
 ## 6. Catching the Reverse Shell
 
-![netcat listener catching shell](screenshots/10.png)
+![netcat listener catching shell](10.png)
 
 ```
 nc -lvnp 9999
@@ -168,7 +168,7 @@ Foothold achieved as the user **`namelessone`**.
 
 ## 7. Grabbing the User Flag
 
-![user.txt](screenshots/11.png)
+![user.txt](11.png)
 
 ```
 cat user.txt
@@ -179,7 +179,7 @@ cat user.txt
 
 ## 8. Post-Exploitation Enumeration
 
-![id command output](screenshots/12.png)
+![id command output](12.png)
 
 ```
 id
@@ -188,11 +188,11 @@ uid=1000(namelessone) gid=1000(namelessone) groups=1000(namelessone),4(adm),24(c
 
 Notable: membership in `sudo` and **`lxd`** groups — both are common Linux privesc vectors (LXD group membership can often be abused to mount the host filesystem via a privileged container). I didn't need to go down the `lxd` route here because a simpler SUID misconfiguration was available (see below), but it's worth flagging as an alternate path.
 
-![custom SUID -> CVE/GTFOBins reference sheet](screenshots/13.png)
+![custom SUID -> CVE/GTFOBins reference sheet](13.png)
 
 I transferred **LinPEAS** to the target (via the FTP share / `wget`) and ran it to automate the privilege-escalation search rather than manually checking every possible vector by hand. LinPEAS checks SUID/SGID binaries, sudo rules, cron jobs, capabilities, kernel version exploits, writable files in root-owned paths, etc., all in one pass and highlights (in red/orange) any binaries with known CVEs or GTFOBins entries — as seen here for `sudo`, `at`, and `pkexec`.
 
-![linpeas banner](screenshots/14.png)
+![linpeas banner](14.png)
 
 Cross-referencing the SUID binaries found against known GTFOBins/CVE techniques:
 
@@ -204,7 +204,7 @@ Cross-referencing the SUID binaries found against known GTFOBins/CVE techniques:
 | `/usr/bin/env` | **GTFOBins — spawns a shell retaining SUID privileges** |
 | `chsh`, `chfn`, `newgrp`, `newuidmap`, `newgidmap`, `gpasswd` | Standard Ubuntu SUID utilities — normally safe |
 
-![find SUID binaries listing](screenshots/15.png)
+![find SUID binaries listing](15.png)
 
 A manual `find / -perm -4000 -type f 2>/dev/null` confirmed the same set of SUID binaries on the actual target.
 
@@ -214,7 +214,7 @@ A manual `find / -perm -4000 -type f 2>/dev/null` confirmed the same set of SUID
 
 ## 9. Privilege Escalation — Abusing SUID `env`
 
-![env SUID exploit -> root shell](screenshots/16.png)
+![env SUID exploit -> root shell](16.png)
 
 ```
 /usr/bin/env /bin/bash -p
