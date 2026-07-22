@@ -265,4 +265,3 @@ Enumeration (id, LinPEAS, manual SUID hunt) → SUID env misconfigured
 
 ---
 
-*Write-up prepared for portfolio/GitHub documentation purposes as part of an authorized lab/CTF exercise.*
