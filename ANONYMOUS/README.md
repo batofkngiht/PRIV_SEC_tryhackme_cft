@@ -27,7 +27,7 @@
 
 ## 1. Reconnaissance — Nmap Scan
 
-![nmap scan](screenshots/1.png)
+![nmap scan](1.png)
 
 ```
 nmap -sV 10.48.143.85
