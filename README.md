@@ -1,2 +1,1 @@
-# TRYHACKME_writeups
-cfts
+THIS are the 5 CFTS based on " PRIVILAGE ESCALATION "
