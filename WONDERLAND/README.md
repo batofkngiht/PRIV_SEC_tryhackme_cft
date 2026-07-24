@@ -52,7 +52,7 @@ Started with a standard service/version scan against the target.
 nmap -sV 10.48.150.121
 ```
 
-![Nmap scan results](images/img01.png)
+![Nmap scan results](1.png)
 
 Two open ports:
 
@@ -65,7 +65,7 @@ Two open ports:
 
 Browsing to port 80 landed on a themed landing page, "Follow the White Rabbit," quoting *Alice in Wonderland*.
 
-![Follow the White Rabbit landing page](images/img02.png)
+![Follow the White Rabbit landing page](2.png)
 
 Ran `gobuster` against the web root to enumerate hidden directories.
 
@@ -73,21 +73,21 @@ Ran `gobuster` against the web root to enumerate hidden directories.
 gobuster dir -u http://10.48.150.121/ -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt -t 50
 ```
 
-![Gobuster directory brute-force results](images/img03.png)
+![Gobuster directory brute-force results](3.png)
 
 Three directories turned up: `/img/`, `/r/`, and `/poem/`.
 
 - **`/img/`** — directory listing exposed three image files: `alice_door.jpg`, `alice_door.png`, `white_rabbit_1.jpg`.
 
-  ![Directory listing of /img/](images/img04.png)
+  ![Directory listing of /img/](4.png)
 
 - **`/r/`** — another themed page, "Keep Going," continuing the Alice narrative and hinting that `/r/` itself is the start of a deeper path.
 
-  ![Keep Going page at /r/](images/img05.png)
+  ![Keep Going page at /r/](5.png)
 
 - **`/poem/`** — the full text of Lewis Carroll's *Jabberwocky*, seemingly just flavor text.
 
-  ![The Jabberwocky poem page](images/img06.png)
+  ![The Jabberwocky poem page](6.png)
 
 ## 3. Steganography on the Images
 
@@ -101,7 +101,7 @@ binwalk alice_door.png
 binwalk white_rabbit_1.jpg
 ```
 
-![Binwalk output for all three images](images/img07.png)
+![Binwalk output for all three images](7.png)
 
 Nothing immediately actionable — `alice_door.jpg` shows some embedded JFIF/TIFF/JBOOT-STAG artifacts and `alice_door.png` shows zlib-compressed data, but neither yields a clean extraction path on its own.
 
@@ -114,7 +114,7 @@ steghide extract -sf alice_door.jpg
 steghide extract -sf white_rabbit_1.jpg
 ```
 
-![Steghide extraction attempts](images/img08.png)
+![Steghide extraction attempts](8.png)
 
 - `alice_door.jpg` — fails, requires a real passphrase we don't have.
 - `white_rabbit_1.jpg` — succeeds with an empty passphrase, extracting `hint.txt`, which spelled out **`r a b b i t`**.
