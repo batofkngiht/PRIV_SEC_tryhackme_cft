@@ -145,7 +145,7 @@ Used the discovered credentials to SSH into the box.
 ssh alice@10.48.132.48
 ```
 
-![SSH login as alice](images/img11.png)
+![SSH login as alice](11.png)
 
 `ls` in alice's home directory showed `root.txt` and `walrus_and_the_carpenter.py`.
 
