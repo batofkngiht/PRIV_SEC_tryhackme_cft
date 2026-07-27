@@ -53,7 +53,7 @@ An `nmap` version scan against the target revealed two open ports:
 
 The host was fingerprinted as an Ubuntu Linux system, with Apache serving the primary attack surface.
 
-![nmap scan](./images/1.png)
+![nmap scan](1.png)
 *nmap -sV scan showing SSH and HTTP open on the target.*
 
 ---
@@ -66,12 +66,12 @@ The host was fingerprinted as an Ubuntu Linux system, with Apache serving the pr
 cgi-bin/   img/   uploads/   admin/   css/   js/   backup/   secret/
 ```
 
-![gobuster directory enumeration](./images/2.png)
+![gobuster directory enumeration](2.png)
 *Gobuster output revealing hidden directories on the web server.*
 
 Browsing to the site's root revealed a personal landing page themed **"0day"**, attributed to *Ryan Montgomery*, with links to social profiles — this became the working name for the box.
 
-![0day landing page](./images/3.png)
+![0day landing page](3.png)
 *The "0day" profile landing page discovered at the web root.*
 
 ---
@@ -82,24 +82,24 @@ Several of the discovered directories initially looked promising but did not lea
 
 - **`/backup/`** contained an **encrypted RSA private key**.
 
-  ![encrypted RSA private key](./images/4.png)
+  ![encrypted RSA private key](4.png)
   *Encrypted RSA private key found inside the `/backup/` directory.*
 
   `ssh2john` was used to extract a crackable hash:
 
-  ![ssh2john extraction](./images/5.png)
+  ![ssh2john extraction](5.png)
   *Using ssh2john to convert the private key into a John-crackable hash.*
 
   `John the Ripper` then cracked the passphrase against `rockyou.txt` in under a second:
 
-  ![john the ripper cracking the passphrase](./images/6.png)
+  ![john the ripper cracking the passphrase](6.png)
   *John the Ripper recovers the passphrase `letmein` almost instantly.*
 
   However, the recovered key/passphrase combination did **not** grant SSH access — this turned out to be a decoy.
 
 - **`/secret/`** simply served a harmless turtle image with no further clues.
 
-  ![turtle image dead end](./images/8.png)
+  ![turtle image dead end](8.png)
   *The `/secret/` directory — a red herring, just a turtle image.*
 
 These paths were noted and set aside as red herrings rather than being pursued further.
@@ -112,19 +112,19 @@ Enumeration continued against the target (now observed at `10.48.186.39`), follo
 
 - **`robots.txt`** returned a taunting message rather than useful disallowed paths — another dead end/troll entry.
 
-  ![robots.txt troll message](./images/7.png)
+  ![robots.txt troll message](7.png)
   *robots.txt returning a sarcastic message instead of useful paths.*
 
 - **`/secret/`** again returned the turtle image.
 
 - **`/cgi-bin/`** returned a `403 Forbidden`, but this confirmed that **CGI script execution was enabled** on the server — a key detail, since Shellshock specifically targets CGI handlers that pass HTTP headers into Bash as environment variables.
 
-  ![cgi-bin forbidden](./images/9.png)
+  ![cgi-bin forbidden](9.png)
   *`/cgi-bin/` returns 403 Forbidden, confirming CGI handling is active on the server.*
 
 An `Nikto` scan against the host reinforced these findings, flagging outdated Apache, missing security headers, and several interesting paths:
 
-![nikto scan results](./images/10.png)
+![nikto scan results](10.png)
 *Nikto scan flagging Apache 2.4.7 as outdated along with several interesting directories.*
 
 The combination of an outdated Apache version and an accessible `cgi-bin` directory pointed strongly toward a **Shellshock** vulnerability.
@@ -137,17 +137,17 @@ The combination of an outdated Apache version and an accessible `cgi-bin` direct
 
 `searchsploit` was used to search for relevant CGI/Apache exploits:
 
-![searchsploit results](./images/11.png)
+![searchsploit results](11.png)
 *searchsploit results for "cgi apache", surfacing several candidate exploits.*
 
 This surfaced a Python-based Shellshock exploitation script targeting `mod_cgi`:
 
-![shellshock python exploit script](./images/12.png)
+![shellshock python exploit script](12.png)
 *Shellshock apache mod_cgi remote exploit script found on Exploit-DB.*
 
 In parallel, `msfconsole` was searched for a more reliable, configurable option:
 
-![msfconsole shellshock search](./images/13.png)
+![msfconsole shellshock search](13.png)
 *Searching Metasploit for "shellshock cgi", returning the apache_mod_cgi_bash_env_exec module.*
 
 ---
@@ -156,17 +156,17 @@ In parallel, `msfconsole` was searched for a more reliable, configurable option:
 
 The module `exploit/multi/http/apache_mod_cgi_bash_env_exec` was configured with the target's RHOSTS, the CGI target URI, and reverse shell payload options:
 
-![metasploit module options](./images/14.png)
+![metasploit module options](14.png)
 *Configured options for the apache_mod_cgi_bash_env_exec exploit module.*
 
 Before firing the exploit, the target CGI script was confirmed to exist and to be a simple Bash script (`test.cgi`) — exactly the kind of script vulnerable to environment variable injection:
 
-![test.cgi contents via meterpreter](./images/15.png)
+![test.cgi contents via meterpreter](15.png)
 *Confirming the vulnerable test.cgi script content via Meterpreter.*
 
 Running the exploit successfully returned a **Meterpreter session**, and dropping into a shell confirmed code execution as `www-data`:
 
-![meterpreter shell as www-data](./images/16.png)
+![meterpreter shell as www-data](16.png)
 *Meterpreter shell dropped into a system shell, landing as www-data.*
 
 ---
@@ -175,7 +175,7 @@ Running the exploit successfully returned a **Meterpreter session**, and droppin
 
 From the shell, navigating to `/home/ryan` revealed the user flag:
 
-![user flag retrieved](./images/17.png)
+![user flag retrieved](17.png)
 *Reading user.txt from Ryan's home directory — user flag captured.*
 
 ---
@@ -186,19 +186,19 @@ With a foothold as `www-data`, the next step was to enumerate the system for pri
 
 An initial attempt to pull and run `linpeas.sh` via `curl` failed to transfer any data (0 bytes received), likely due to a network/hosting issue on the attacking side:
 
-![linpeas curl attempt failing](./images/18.png)
+![linpeas curl attempt failing](18.png)
 *Attempting to pull and run linpeas.sh directly via curl — the transfer stalls at 0 bytes.*
 
 Manual enumeration of the kernel version instead revealed a known-vulnerable kernel:
 
-![kernel version 3.13.0-32-generic](./images/19.png)
+![kernel version 3.13.0-32-generic](19.png)
 *Kernel identified as 3.13.0-32-generic on Ubuntu 14.04.1 LTS "trusty".*
 
 This is a kernel version known to be vulnerable to **CVE-2015-1328**, a local privilege escalation flaw in **overlayfs**, affecting Ubuntu kernels `3.13.0 < 3.19` (Exploit-DB ID `37292`).
 
 A Python 3 HTTP server (`python3 -m http.server 9999`) was started on the attacking machine to host the exploit source code, and the target successfully retrieved it via `wget`/`curl`:
 
-![python http.server hosting the exploit](./images/20.png)
+![python http.server hosting the exploit](20.png)
 *Serving 37292.c from the attacking machine; access logs confirm the target retrieved it successfully.*
 
 Since the `www-data` user had no write permission in `/home/ryan`, the exploit was downloaded, compiled, and executed from **`/tmp`**:
@@ -210,7 +210,7 @@ gcc 37292.c -o 37292
 
 This dropped into a root shell, which was confirmed and used to retrieve the root flag:
 
-![root shell and root flag](./images/21.png)
+![root shell and root flag](21.png)
 *Compiling and running the overlayfs exploit (37292.c) in /tmp, escalating to root and reading root.txt.*
 
 ```
